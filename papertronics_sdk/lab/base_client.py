@@ -18,6 +18,12 @@ class BaseClient:
     def __init__(self, url, token=None):
         self.url = url
         self.token = token
+        try:
+            response = self.get(f"{self.url}")
+            if response.status_code != 200:
+                raise Exception(response.status_code)
+        except Exception as e:
+            raise Exception(f"could not connect to {url}: {e}")
 
     def http_request(self, func):
         def wrap(path, **kwargs):

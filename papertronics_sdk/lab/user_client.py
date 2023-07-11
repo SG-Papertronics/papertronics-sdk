@@ -24,21 +24,21 @@ class UserLabClient(BaseClient):
     def download_data(self):
         return "not implemented"
 
-    async def download_image(self,
+    def download_image(self,
                              blob_name: str):
         return "not implemented"
 
-    async def get_device_info(self) -> DeviceModel:
+    def get_device_info(self) -> DeviceModel:
         response = self.get(f"{self.url}/device",
                             headers={"Authorization": f"Bearer {self.token}"})
         return DeviceModel.parse_obj(response.json())
 
-    async def get_devices(self) -> List[DeviceModel]:
+    def get_devices(self) -> List[DeviceModel]:
         response = self.get(f"{self.url}/device/all",
                             headers={"Authorization": f"Bearer {self.token}"})
         return [DeviceModel.parse_obj(r) for r in response.json()]
 
-    async def get_user_info(self) -> UserModel:
+    def get_user_info(self) -> UserModel:
         response = self.get(f"{self.url}/user",
                             headers={"Authorization": f"Bearer {self.token}"})
         return UserModel.parse_obj(response.json())
@@ -101,7 +101,7 @@ class UserLabClient(BaseClient):
                                headers={"Authorization": f"Bearer {self.token}"})
         return ProtocolModel.parse_obj(response.json())
 
-    async def start_experiment(self, request: ExperimentStartRequest) -> ExperimentModel:
+    def start_experiment(self, request: ExperimentStartRequest) -> ExperimentModel:
         response = self.post(f"{self.url}/experiment/start",
                              headers={"Authorization": f"Bearer {self.token}"},
                              json=request.dict())
