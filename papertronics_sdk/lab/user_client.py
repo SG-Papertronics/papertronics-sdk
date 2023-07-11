@@ -11,13 +11,14 @@ from .base_client import BaseClient
 class UserLabClient(BaseClient):
 
     def authenticate(self, email, password):
-        response = self.post(f"{self.url}/auth/token", data=dict(username=email, password=password))
+        response = self.post(f"/auth/token", data=dict(username=email, password=password), include_token=False)
         self.token = response.json().get("access_token")
         return self.token
 
     def authenticate_device(self, device_id: uuid.UUID):
-        response = self.post(f"{self.url}/auth/device?device_id={device_id}",
-                             headers={"Authorization": f"Bearer {self.token}"})
+        response = self.post(f"/auth/device",
+                             headers={"Authorization": f"Bearer {self.token}"},
+                             params={"device_id": device_id})
         self.token = response.json().get("access_token")
         return self.token
 
@@ -25,26 +26,26 @@ class UserLabClient(BaseClient):
         return "not implemented"
 
     def download_image(self,
-                             blob_name: str):
+                       blob_name: str):
         return "not implemented"
 
     def get_device_info(self) -> DeviceModel:
-        response = self.get(f"{self.url}/device",
+        response = self.get(f"/device",
                             headers={"Authorization": f"Bearer {self.token}"})
         return DeviceModel.parse_obj(response.json())
 
     def get_devices(self) -> List[DeviceModel]:
-        response = self.get(f"{self.url}/device/all",
+        response = self.get(f"/device/all",
                             headers={"Authorization": f"Bearer {self.token}"})
         return [DeviceModel.parse_obj(r) for r in response.json()]
 
     def get_user_info(self) -> UserModel:
-        response = self.get(f"{self.url}/user",
+        response = self.get(f"/user",
                             headers={"Authorization": f"Bearer {self.token}"})
         return UserModel.parse_obj(response.json())
 
     def store_protocol(self, protocol_request: SaveProtocolRequest) -> ProtocolModel:
-        response = self.post(f"{self.url}/protocol",
+        response = self.post(f"/protocol",
                              headers={"Authorization": f"Bearer {self.token}"},
                              json=protocol_request.dict())
         return ProtocolModel.parse_obj(response.json())
@@ -56,9 +57,10 @@ class UserLabClient(BaseClient):
                        flash: bool = True,
                        start_delay: int = 0) -> ProtocolModel:
         response = self.post(
-            f"{self.url}/protocol/build?duration={duration}&interval={interval}&flash={flash}&start_delay={start_delay}",
+            f"/protocol/build",
             headers={"Authorization": f"Bearer {self.token}"},
-            json=protocol_request.dict())
+            json=protocol_request.dict(),
+            params={"duration": duration, "interval": interval, "flash": flash, "start_delay": start_delay})
         return ProtocolModel.parse_obj(response.json())
 
     def get_protocol(self,
@@ -67,7 +69,7 @@ class UserLabClient(BaseClient):
                      page_size: Optional[int] = None,
                      page: Optional[int] = None,
                      valid: Optional[bool] = True) -> Union[ProtocolModel, List[ProtocolModel]]:
-        response = self.get(f"{self.url}/protocol",
+        response = self.get(f"/protocol",
                             headers={"Authorization": f"Bearer {self.token}"},
                             params=dict(protocol_id=protocol_id,
                                         protocol_test_type=protocol_test_type,
@@ -82,34 +84,37 @@ class UserLabClient(BaseClient):
     def count_protocol(self,
                        protocol_test_type: Optional[str] = None,
                        valid: Optional[bool] = True) -> int:
-        response = self.get(f"{self.url}/protocol/count",
+        response = self.get(f"/protocol/count",
                             headers={"Authorization": f"Bearer {self.token}"},
                             params=dict(protocol_test_type=protocol_test_type,
                                         valid=valid))
         return int(response.text)
 
     def get_protocol_test_def(self, protocol_id: uuid.UUID) -> Union[ProtocolTestResponse, str]:
-        response = self.get(f"{self.url}/protocol/test?protocol_id={protocol_id}",
-                            headers={"Authorization": f"Bearer {self.token}"})
+        response = self.get(f"/protocol/test",
+                            headers={"Authorization": f"Bearer {self.token}"},
+                            params={"protocol_id": protocol_id})
         if type(response.json()) == str:
             return response.json()
         else:
             return ProtocolTestResponse.parse_obj(response.json())
 
     def invalidate_protocol(self, protocol_id: uuid.UUID) -> ProtocolModel:
-        response = self.delete(f"{self.url}/protocol?protocol_id={protocol_id}",
-                               headers={"Authorization": f"Bearer {self.token}"})
+        response = self.delete(f"/protocol",
+                               headers={"Authorization": f"Bearer {self.token}"},
+                               params={"protocol_id": protocol_id})
         return ProtocolModel.parse_obj(response.json())
 
     def start_experiment(self, request: ExperimentStartRequest) -> ExperimentModel:
-        response = self.post(f"{self.url}/experiment/start",
-                             headers={"Authorization": f"Bearer {self.token}"},
-                             json=request.dict())
+        response = self.post(f"/experiment/start",
+                             headers={"Authorization": f"Bearer {self.token}",
+                                      'Content-Type': 'application/json'},
+                             data=request.json())
         return ExperimentModel.parse_obj(response.json())
 
     def cancel_experiment(self,
                           experiment_id: uuid.UUID):
-        self.post(f"{self.url}/experiment/cancel",
+        self.post(f"/experiment/cancel",
                   headers={"Authorization": f"Bearer {self.token}"},
                   json=dict(experiment_id=experiment_id))
 
@@ -122,7 +127,7 @@ class UserLabClient(BaseClient):
                         page: Optional[int] = None,
                         valid: Optional[bool] = None,
                         first=True) -> Union[List[ExperimentModel], ExperimentModel]:
-        response = self.get(f"{self.url}/experiment",
+        response = self.get(f"/experiment",
                             headers={"Authorization": f"Bearer {self.token}"},
                             params=dict(experiment_id=experiment_id,
                                         device_id=device_id,
@@ -139,7 +144,7 @@ class UserLabClient(BaseClient):
     def count_experiments(self,
                           valid: Optional[bool] = None,
                           device_id: Optional[uuid.UUID] = None) -> int:
-        response = self.get(f"{self.url}/experiment/count",
+        response = self.get(f"/experiment/count",
                             headers={"Authorization": f"Bearer {self.token}"},
                             params=dict(device_id=device_id,
                                         valid=valid))
@@ -148,21 +153,20 @@ class UserLabClient(BaseClient):
     def edit_experiment_by_id(self,
                               experiment_id: uuid.UUID,
                               experiment_edit_request: ExperimentEditRequest):
-        response = self.post(f"{self.url}/experiment/edit?experiment_id={experiment_id}",
+        response = self.post(f"/experiment/edit",
                              headers={"Authorization": f"Bearer {self.token}"},
-                             json=experiment_edit_request.dict())
+                             json=experiment_edit_request.dict(),
+                             params={"experiment_id": experiment_id})
         return ExperimentModel.parse_obj(response.json())
 
     def delete_experiment_by_id(self,
                                 experiment_id: uuid.UUID):
-        self.delete(f"{self.url}/experiment?experiment_id={experiment_id}",
-                    headers={"Authorization": f"Bearer {self.token}"})
+        self.delete(f"/experiment",
+                    headers={"Authorization": f"Bearer {self.token}"},
+                    params={"experiment_id": experiment_id})
 
     def perform_experiment(self, request: ExperimentStartRequest, timeout=120):
-        response = self.post(f"{self.url}/experiment/start",
-                             headers={"Authorization": f"Bearer {self.token}"},
-                             json=request.dict())
-        experiment = ExperimentModel.parse_obj(response.json())
+        experiment = self.start_experiment(request)
 
         sleep_counter = 0
         images_captured = 0
