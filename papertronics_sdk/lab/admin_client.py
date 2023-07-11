@@ -4,7 +4,7 @@ from typing import Optional, Union, List
 from .models.database import DeviceModel, DeviceLinkModel, DeviceStatisticModel, ProtocolModel, ProtocolLinkModel, \
     UserModel
 from .models.admin_cloud_models import DeviceRequest, UserRequest
-from base_client import BaseClient
+from .base_client import BaseClient
 
 
 class AdminLabClient(BaseClient):
