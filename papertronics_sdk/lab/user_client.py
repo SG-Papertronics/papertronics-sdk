@@ -69,13 +69,21 @@ class UserLabClient(BaseClient):
                      page_size: Optional[int] = None,
                      page: Optional[int] = None,
                      valid: Optional[bool] = True) -> Union[ProtocolModel, List[ProtocolModel]]:
+        params = {}
+        if protocol_id:
+            params["protocol_id"] = protocol_id
+        if protocol_test_type:
+            params["protocol_test_type"] = protocol_test_type
+        if page_size is not None:
+            params["page_size"] = page_size
+        if page is not None:
+            params["page"] = page
+        if valid is not None:
+            params["valid"] = valid
+
         response = self.get(f"/protocol",
                             headers={"Authorization": f"Bearer {self.token}"},
-                            params=dict(protocol_id=protocol_id,
-                                        protocol_test_type=protocol_test_type,
-                                        page_size=page_size,
-                                        page=page,
-                                        valid=valid))
+                            params=params)
         if type(response.json()) == list:
             return [ProtocolModel.parse_obj(r) for r in response.json()]
         else:
@@ -84,10 +92,15 @@ class UserLabClient(BaseClient):
     def count_protocol(self,
                        protocol_test_type: Optional[str] = None,
                        valid: Optional[bool] = True) -> int:
+        params = {}
+        if protocol_test_type:
+            params["protocol_test_type"] = protocol_test_type
+        if valid is not None:
+            params["valid"] = valid
+
         response = self.get(f"/protocol/count",
                             headers={"Authorization": f"Bearer {self.token}"},
-                            params=dict(protocol_test_type=protocol_test_type,
-                                        valid=valid))
+                            params=params)
         return int(response.text)
 
     def get_protocol_test_def(self, protocol_id: uuid.UUID) -> Union[ProtocolTestResponse, str]:
@@ -127,15 +140,23 @@ class UserLabClient(BaseClient):
                         page: Optional[int] = None,
                         valid: Optional[bool] = None,
                         first=True) -> Union[List[ExperimentModel], ExperimentModel]:
+        params = {"order_by": order_by,
+                  "ascending_order": ascending_order,
+                  "first": first}
+        if experiment_id:
+            params["experiment_id"] = experiment_id
+        if device_id:
+            params["device_id"] = device_id
+        if page_size is not None:
+            params["page_size"] = page_size
+        if page is not None:
+            params["page"] = page
+        if valid is not None:
+            params["valid"] = valid
+
         response = self.get(f"/experiment",
                             headers={"Authorization": f"Bearer {self.token}"},
-                            params=dict(experiment_id=experiment_id,
-                                        device_id=device_id,
-                                        order_by=order_by,
-                                        ascending_order=ascending_order,
-                                        page_size=page_size,
-                                        page=page,
-                                        valid=valid))
+                            params=params)
         if first:
             return ExperimentModel.parse_obj(response.json()[0])
         else:
@@ -144,10 +165,15 @@ class UserLabClient(BaseClient):
     def count_experiments(self,
                           valid: Optional[bool] = None,
                           device_id: Optional[uuid.UUID] = None) -> int:
+        params = {}
+        if valid is not None:
+            params["valid"] = valid
+        if device_id is not None:
+            params["device_id"] = device_id
+
         response = self.get(f"/experiment/count",
                             headers={"Authorization": f"Bearer {self.token}"},
-                            params=dict(device_id=device_id,
-                                        valid=valid))
+                            params=params)
         return int(response.text)
 
     def edit_experiment_by_id(self,
