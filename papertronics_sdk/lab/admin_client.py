@@ -18,6 +18,12 @@ class AdminLabClient(BaseClient):
                              params={"user_id": user_id})
         return response.json().get("access_token")
 
+    def login_device(self, user_id: uuid.UUID, device_id: uuid.UUID) -> str:
+        response = self.post(f"/admin/auth/device",
+                             headers={"Authorization": f"Bearer {self.token}"},
+                             params={"user_id": user_id, "device_id": device_id})
+        return response.json().get("access_token")
+
     def get_users(self, user_id: Optional[uuid.UUID] = None) -> Union[List[UserModel], UserModel]:
         params = {}
         if user_id:
