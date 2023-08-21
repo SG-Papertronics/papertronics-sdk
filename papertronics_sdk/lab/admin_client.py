@@ -1,6 +1,7 @@
 import uuid
 from typing import Optional, Union, List
 
+from .models.cloud_models import SaveProtocolRequest
 from .models.database import DeviceModel, DeviceLinkModel, DeviceStatisticModel, ProtocolModel, ProtocolLinkModel, \
     UserModel
 from .models.admin_cloud_models import DeviceRequest, UserRequest
@@ -65,6 +66,12 @@ class AdminLabClient(BaseClient):
             return [ProtocolModel.parse_obj(r) for r in response_dict]
         else:
             return ProtocolModel.parse_obj(response_dict)
+
+    def store_protocol(self, protocol_request: SaveProtocolRequest) -> ProtocolModel:
+        response = self.post(f"/admin/protocol",
+                             headers={"Authorization": f"Bearer {self.token}"},
+                             json=protocol_request.dict())
+        return ProtocolModel.parse_obj(response.json())
 
     def link_protocol(self, protocol_id: uuid.UUID, user_id: uuid.UUID) -> ProtocolLinkModel:
         response = self.post(f"/admin/protocol/link",
