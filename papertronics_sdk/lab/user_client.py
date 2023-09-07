@@ -191,23 +191,21 @@ class UserLabClient(BaseClient):
                     headers={"Authorization": f"Bearer {self.token}"},
                     params={"experiment_id": experiment_id})
 
-    def perform_experiment(self, request: ExperimentStartRequest, timeout=120):
+    def perform_experiment(self, request: ExperimentStartRequest, timeout=120, check_interval=1):
         experiment = self.start_experiment(request)
 
         sleep_counter = 0
         images_captured = 0
 
         while experiment.status == ExperimentStatus.PENDING:
-            time.sleep(1)
-            sleep_counter += 1
+            time.sleep(check_interval)
+            sleep_counter += check_interval
             if sleep_counter > timeout:
                 raise TimeoutError("Experiment timed out. Experiment status is still PENDING.")
             experiment = self.get_experiments(experiment_id=[experiment.id], first=True)
 
-        while not (experiment.status == ExperimentStatus.FINISHED or
-                   experiment.status == ExperimentStatus.FAILED or
-                   experiment.status == ExperimentStatus.CANCELLED):
-            time.sleep(1)
+        while experiment.status == ExperimentStatus.IN_PROGRESS or experiment.status == ExperimentStatus.STARTED:
+            time.sleep(check_interval)
             experiment = self.get_experiments(experiment_id=[experiment.id], first=True)
             if len(experiment.image_extracts) > images_captured:
                 images_captured = len(experiment.image_extracts)
