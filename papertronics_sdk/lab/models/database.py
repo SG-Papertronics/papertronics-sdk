@@ -1,11 +1,12 @@
 from datetime import datetime
 import enum
 import uuid
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from .station_protocol import ProtocolProcessingDefinition, StationProtocol
+from .generic import Point
 
 
 class ORMBaseModel(BaseModel):
@@ -43,11 +44,25 @@ class ProtocolModel(ORMBaseModel):
     processing_definition: ProtocolProcessingDefinition
 
 
+class DeviceCustomConfiguration(BaseModel):
+    light_offset: Optional[Tuple[int, int, int, int]] = None
+    camera_center: Optional[Point] = None
+
+    @validator("light_offset")
+    def check_light_offset(cls, v):
+        if v is not None:
+            for i in v:
+                if not (-255 <= i <= 255):
+                    raise ValueError("light offset must be between -255 and 255")
+        return v
+
+
 class DeviceModel(ORMBaseModel):
     id: uuid.UUID
     number: Optional[int] = None
     name: str
     created_at: datetime
+    custom_configuration: DeviceCustomConfiguration = DeviceCustomConfiguration()
 
 
 class DeviceLinkModel(ORMBaseModel):
