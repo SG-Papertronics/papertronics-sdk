@@ -10,8 +10,8 @@ from .base_client import BaseClient
 
 class AdminLabClient(BaseClient):
 
-    def __init__(self, url, token):
-        super().__init__(url, token)
+    def __init__(self, url, token, timeout=5):
+        super().__init__(url, token, timeout)
 
     def login_user(self, user_id: uuid.UUID) -> str:
         response = self.post(f"/admin/auth/token",

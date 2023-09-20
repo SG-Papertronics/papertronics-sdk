@@ -1,6 +1,7 @@
 import logging
 
 import httpx
+from httpx import Client
 
 from .exceptions.status_exception import StatusException
 
@@ -27,27 +28,25 @@ def http_request(func):
 
     return wrap
 
-class BaseClient:
 
-    def __init__(self, url, token=None):
+class BaseClient(Client):
+
+    def __init__(self, url, token=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.url = url
         self.token = token
-        try:
-            response = self.get(f"", include_token=False)
-            if response.status_code != 200:
-                raise Exception(response.status_code)
-        except Exception as e:
-            raise Exception(f"could not connect to {url}: {e}")
 
+    @staticmethod
     @http_request
-    def get(self, url, **kwargs):
-        return httpx.get(url, **kwargs)
+    def get(url, **kwargs):
+        return super().get(url, **kwargs)
 
+    @staticmethod
     @http_request
-    def post(self, url, **kwargs):
-        return httpx.post(url, **kwargs)
+    def post(url, **kwargs):
+        return super().post(url, **kwargs)
 
+    @staticmethod
     @http_request
-    def delete(self, url, **kwargs):
-        return httpx.delete(url, **kwargs)
-
+    def delete(url, **kwargs):
+        return super().delete(url, **kwargs)
