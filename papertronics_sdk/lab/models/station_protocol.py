@@ -252,9 +252,19 @@ class StationProtocol(BaseModel):
         return v
 
 
+class TemplateMatchingSettings(BaseModel):
+    template_key: str = ""
+    mask_key: str = ""
+
+
 class ProtocolProcessingDefinition(BaseModel):
-    template_matching: bool
-    mask_radius: float
+    template_matching: bool = False
+    template_matching_settings: TemplateMatchingSettings = TemplateMatchingSettings()
+    mask_radius: float = 1
+
+    save_compressed_image: bool = True
+    save_mask_marked_image: bool = True
+    save_thumbnail: bool = True
 
     @validator('mask_radius')
     def validate_mask_radius(cls, v):
