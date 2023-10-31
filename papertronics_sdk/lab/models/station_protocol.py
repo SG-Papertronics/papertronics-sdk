@@ -6,7 +6,7 @@
 import logging
 from enum import Enum
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, root_validator
 from typing import Optional, List, Tuple
 
 from .generic import Point, MotorState, LightColor
@@ -253,14 +253,21 @@ class StationProtocol(BaseModel):
 
 
 class TemplateMatchingSettings(BaseModel):
-    template_key: str = ""
-    mask_key: str = ""
+    template_key: str
+    mask_key: str
+
+
+class ProcessingType(str, Enum):
+    CENTER_RADIUS = "CENTER_RADIUS"
+    CALIBRATION = "CALIBRATION"
 
 
 class ProtocolProcessingDefinition(BaseModel):
-    template_matching: bool = False
-    template_matching_settings: TemplateMatchingSettings = TemplateMatchingSettings()
     mask_radius: float = 1
+    processing_type: ProcessingType = ProcessingType.CENTER_RADIUS
+
+    template_matching: bool = False
+    template_matching_settings: Optional[TemplateMatchingSettings] = None
 
     save_compressed_image: bool = True
     save_mask_marked_image: bool = True
@@ -272,3 +279,11 @@ class ProtocolProcessingDefinition(BaseModel):
             return v
         else:
             raise ValueError(f"mask radius {v} is not within [0..1]")
+
+    @root_validator()
+    def validate_template_matching(cls, values):
+        if values['template_matching']:
+            if values['template_matching_settings'] is None:
+                raise ValueError("template matching settings are required if template matching is enabled")
+        return values
+
