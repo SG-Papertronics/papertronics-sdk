@@ -99,8 +99,9 @@ class AdminLabClient(Client):
         else:
             return DeviceModel.parse_obj(response_dict)
 
-    def add_device(self, add_device_request: DeviceRequest) -> DeviceModel:
-        response = self.post(f"/admin/device", json=add_device_request.dict(),
+    def add_device(self, add_device_request: DeviceRequest, force_if_unregistered: bool = False) -> DeviceModel:
+        response = self.post(f"/admin/device?force_if_unregistered={force_if_unregistered}",
+                             json=add_device_request.dict(),
                              headers={"Authorization": f"Bearer {self.token}"})
         return DeviceModel.parse_obj(response.json())
 
