@@ -60,6 +60,7 @@ class CameraConfig(BaseModel):
     af_speed: FocusSpeed = FocusSpeed.NORMAL
     af_windows: Optional[List[Tuple[int, int, int, int]]] = None  # TODO: how to do this
     analogue_gain: Optional[float] = None
+    colour_gain: Optional[Tuple[float, float]] = None
     lens_position: Optional[float] = None
 
     class Config:
@@ -117,6 +118,13 @@ class CameraConfig(BaseModel):
         else:
             raise ValueError(f"exposure {v} is not within [1..16]")
 
+    @validator('colour_gain')
+    def validate_colour_gain(cls, v):
+        if v is None or (0 <= v[0] <= 32 and 0 <= v[1] <= 32):
+            return v
+        else:
+            raise ValueError(f"colour gain {v} is not within [0..32]")
+
     @validator('lens_position')
     def validate_lens_position(cls, v):
         if v is None or 0 <= v <= 32:
@@ -160,6 +168,14 @@ class Schedule(BaseModel):
             raise ValueError(f"the brightness of the light must be between 0 and 1")
 
 
+class ProtocolBuildParameters(BaseModel):
+    duration: float
+    interval: float
+    start_delay: float = 0
+    flash: Optional[LightColor] = None
+    #schedule: List[Schedule] = []
+
+
 class StationProtocol(BaseModel):
     light_color: LightColor = LightColor(0, 0, 0, 0)
     light_brightness: float = 1
@@ -176,17 +192,17 @@ class StationProtocol(BaseModel):
     class Config:
         validate_assignment = True
 
-    def build_timelapse(self, interval: int, duration: int, flash: Optional[LightColor] = None, start_delay: int = 0): #TODO: test
+    def build_timelapse(self, build_params: ProtocolBuildParameters):  # TODO: test
         """
         Build a timelapse schedule based on the given interval and duration
         """
-        nr_of_images = (duration // interval) + 1
+        nr_of_images = int((build_params.duration // build_params.interval) + 1)
         schedule_dict = {t.start: t for t in self.timelapse_schedule}
 
-        if flash is not None:
+        if build_params.flash is not None:
             self.light_color = LightColor(0, 0, 0, 0)
 
-        if flash is not None and start_delay < 1:
+        if build_params.flash is not None and build_params.start_delay < 1:
             raise Exception(f"flash was selected, but start delay is too short."
                             f"Start delay should be at least 1 second when flash is enabled")
 
@@ -194,11 +210,11 @@ class StationProtocol(BaseModel):
         for s in self.timelapse_schedule:
             if s.capture_image:
                 raise Exception(f"protocol already has capture image tasks")
-            if flash is not None and s.light_color is not None:
+            if build_params.flash is not None and s.light_color is not None:
                 raise Exception(f"flash was selected, but protocol already has light alterations.")
 
         for img_nr in range(nr_of_images):
-            start_time = interval * img_nr + start_delay
+            start_time = build_params.interval * img_nr + build_params.start_delay
 
             # if there is already a task at this time, add capture image to it. Otherwise, create a new task
             if start_time in schedule_dict:
@@ -207,16 +223,16 @@ class StationProtocol(BaseModel):
                 self.timelapse_schedule.append(Schedule(start=start_time, capture_image=True))
 
             # add flash tasks to protocol steps
-            if flash is not None:
+            if build_params.flash is not None:
                 flash_start_time = start_time - 1
                 flash_end_time = start_time + 1
 
                 # if there is already a task at this time, add flash to it. Otherwise, create a new task
                 if flash_start_time in schedule_dict:
-                    schedule_dict[flash_start_time].light_color = flash
+                    schedule_dict[flash_start_time].light_color = build_params.flash
                 else:
                     self.timelapse_schedule.append(Schedule(start=flash_start_time,
-                                                            light_color=flash))
+                                                            light_color=build_params.flash))
 
                 # if there is already a task at this time, add flash to it. Otherwise, create a new task
                 if flash_end_time in schedule_dict:
